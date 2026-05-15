@@ -32,12 +32,16 @@ class Settings(BaseSettings):
 
     # Limits
     MAX_UPLOAD_SIZE_MB: int = 100
-    ALLOWED_MODELS: List[str] = ["gemini-1.0-pro-002"]
+    # Use Any or str to avoid Pydantic Settings' automatic JSON loading for lists
+    ALLOWED_MODELS: Union[str, List[str]] = "gemini-1.0-pro-002"
 
     @field_validator("ALLOWED_MODELS", mode="before")
     @classmethod
     def assemble_allowed_models(cls, v: Union[str, List[str]]) -> List[str]:
         if isinstance(v, str):
+            if v.startswith("[") and v.endswith("]"):
+                import json
+                return json.loads(v)
             return [model.strip() for model in v.split(",")]
         return v
 
