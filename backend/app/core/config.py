@@ -1,4 +1,4 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -32,28 +32,36 @@ class Settings(BaseSettings):
 
     # Limits
     MAX_UPLOAD_SIZE_MB: int = 100
-    # Use Any to prevent pydantic-settings from auto-decoding complex types
-    ALLOWED_MODELS: Any = "gemini-1.0-pro-002"
+    # Use Union to satisfy both the string from Env and the List we want
+    ALLOWED_MODELS: Union[List[str], str] = ["gemini-1.0-pro-002"]
 
     @field_validator("ALLOWED_MODELS", mode="before")
     @classmethod
     def assemble_allowed_models(cls, v: Any) -> List[str]:
         if isinstance(v, list):
-            return v
+            return [str(item) for item in v]
         if isinstance(v, str):
             v = v.strip()
-            # Handle JSON-like strings if they exist
+            if not v:
+                return ["gemini-1.0-pro-002"]
+            # Try to parse as JSON if it looks like a list
             if v.startswith("[") and v.endswith("]"):
                 try:
                     import json
                     parsed = json.loads(v)
                     if isinstance(parsed, list):
-                        return parsed
-                except:
+                        return [str(item) for item in parsed]
+                except Exception:
                     pass
-            # Default to comma-separated
+            # Fallback to comma-separated
             return [model.strip() for model in v.split(",") if model.strip()]
         return ["gemini-1.0-pro-002"]
 
 
-settings = Settings()
+# Create settings instance
+try:
+    settings = Settings()
+except Exception as e:
+    # Minimal fallback or let it raise with clear info
+    print(f"CRITICAL: Failed to load settings: {e}")
+    raise
