@@ -1,5 +1,5 @@
 import json
-import aioredis
+import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
@@ -127,8 +127,8 @@ async def stream_logs(websocket: WebSocket, job_id: str, token: str):
 
     await websocket.accept()
     
-    redis = await aioredis.from_url(settings.REDIS_URL, decode_responses=True)
-    pubsub = redis.pubsub()
+    redis_client = await redis.from_url(settings.REDIS_URL, decode_responses=True)
+    pubsub = redis_client.pubsub()
     channel = f"job_logs:{job_id}"
     await pubsub.subscribe(channel)
 
@@ -145,4 +145,4 @@ async def stream_logs(websocket: WebSocket, job_id: str, token: str):
         await websocket.send_json({"error": str(e)})
     finally:
         await pubsub.unsubscribe(channel)
-        await redis.close()
+        await redis_client.close()
