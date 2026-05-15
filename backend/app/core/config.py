@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -32,18 +32,25 @@ class Settings(BaseSettings):
 
     # Limits
     MAX_UPLOAD_SIZE_MB: int = 100
-    # Use Any or str to avoid Pydantic Settings' automatic JSON loading for lists
-    ALLOWED_MODELS: Union[str, List[str]] = "gemini-1.0-pro-002"
+    # Use Any to prevent pydantic-settings from auto-JSON-decoding complex types
+    ALLOWED_MODELS: Any = "gemini-1.0-pro-002"
 
     @field_validator("ALLOWED_MODELS", mode="before")
     @classmethod
-    def assemble_allowed_models(cls, v: Union[str, List[str]]) -> List[str]:
+    def assemble_allowed_models(cls, v: Any) -> List[str]:
+        if isinstance(v, list):
+            return v
         if isinstance(v, str):
+            # Try JSON first
             if v.startswith("[") and v.endswith("]"):
-                import json
-                return json.loads(v)
-            return [model.strip() for model in v.split(",")]
-        return v
+                try:
+                    import json
+                    return json.loads(v)
+                except:
+                    pass
+            # Fallback to comma-separated
+            return [model.strip() for model in v.split(",") if model.strip()]
+        return ["gemini-1.0-pro-002"]
 
 
 settings = Settings()
