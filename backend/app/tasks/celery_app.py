@@ -5,6 +5,7 @@ celery_app = Celery(
     "autofinetune",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
+    include=["app.tasks.finetune_pipeline", "app.tasks.eval_pipeline"]
 )
 
 celery_app.conf.update(
