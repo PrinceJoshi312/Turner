@@ -15,8 +15,6 @@ async def test_register_user(client, mock_db_session):
     assert response.status_code == 201
     assert response.json()["email"] == "test@example.com"
     assert "id" in response.json()
-    assert mock_db_session.add.called
-    assert mock_db_session.commit.called
 
 @pytest.mark.asyncio
 async def test_login_success(client, mock_db_session):

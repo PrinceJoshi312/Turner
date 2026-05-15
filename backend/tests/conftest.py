@@ -15,18 +15,45 @@ from app.core.config import settings
 # but for logic testing we can mock the session entirely or use a test DB.
 # Let's mock the session to be safest and fastest.
 
+from app.api.deps import get_current_user
+from app.db.models.user import User
+from uuid import uuid4
+
+@pytest.fixture
+def mock_user():
+    return User(
+        id=uuid4(),
+        email="test@example.com"
+    )
+
 @pytest.fixture
 def mock_db_session():
     session = MagicMock(spec=AsyncSession)
+    
+    async def mock_refresh(obj):
+        from uuid import uuid4
+        from datetime import datetime
+        if hasattr(obj, 'id') and not obj.id:
+            obj.id = uuid4()
+        if hasattr(obj, 'created_at') and not obj.created_at:
+            obj.created_at = datetime.utcnow()
+        if hasattr(obj, 'is_active') and obj.is_active is None:
+            obj.is_active = True
+
+    session.refresh = mock_refresh
     return session
 
 @pytest_asyncio.fixture
-async def client(mock_db_session) -> AsyncGenerator[AsyncClient, None]:
-    # Override get_db dependency
+async def client(mock_db_session, mock_user) -> AsyncGenerator[AsyncClient, None]:
+    # Override dependencies
     async def override_get_db():
         yield mock_db_session
 
+    async def override_get_current_user():
+        return mock_user
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
     
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac

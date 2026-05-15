@@ -26,6 +26,8 @@ services:
     depends_on:
       - postgres
       - redis
+    volumes:
+      - ../backend:/app
     env_file:
       - ../backend/.env.example # Use example as template for dev
     environment:
@@ -42,6 +44,8 @@ services:
     depends_on:
       - postgres
       - redis
+    volumes:
+      - ../backend:/app
     env_file:
       - ../backend/.env.example
     environment:
