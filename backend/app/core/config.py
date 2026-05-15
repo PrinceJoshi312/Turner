@@ -1,10 +1,12 @@
-from typing import List, Optional
+from typing import List, Optional, Union
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=True
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=True,
+        extra="ignore"
     )
 
     # App
@@ -31,6 +33,13 @@ class Settings(BaseSettings):
     # Limits
     MAX_UPLOAD_SIZE_MB: int = 100
     ALLOWED_MODELS: List[str] = ["gemini-1.0-pro-002"]
+
+    @field_validator("ALLOWED_MODELS", mode="before")
+    @classmethod
+    def assemble_allowed_models(cls, v: Union[str, List[str]]) -> List[str]:
+        if isinstance(v, str):
+            return [model.strip() for model in v.split(",")]
+        return v
 
 
 settings = Settings()
