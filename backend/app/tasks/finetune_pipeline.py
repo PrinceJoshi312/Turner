@@ -33,13 +33,17 @@ def validate_dataset(dataset_id: str):
         if not dataset:
             return "Dataset not found"
 
-        storage_client = storage.Client()
-        bucket_name = dataset.gcs_uri.split("/")[2]
-        blob_name = "/".join(dataset.gcs_uri.split("/")[3:])
-        bucket = storage_client.bucket(bucket_name)
-        blob = bucket.blob(blob_name)
-        
-        content = blob.download_as_bytes()
+        if dataset.gcs_uri.startswith("local://"):
+            local_path = f"/app/data/local_storage/{dataset.gcs_uri.replace('local://', '')}"
+            with open(local_path, "rb") as f:
+                content = f.read()
+        else:
+            storage_client = storage.Client()
+            bucket_name = dataset.gcs_uri.split("/")[2]
+            blob_name = "/".join(dataset.gcs_uri.split("/")[3:])
+            bucket = storage_client.bucket(bucket_name)
+            blob = bucket.blob(blob_name)
+            content = blob.download_as_bytes()
         
         try:
             if dataset.file_type == "csv":
@@ -82,6 +86,30 @@ def launch_job(self, job_id: str):
 
         dataset = db.get(Dataset, job.dataset_id)
         
+        # Check for GCP credentials
+        import os
+        creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if not creds_path or not os.path.exists(creds_path) or dataset.gcs_uri.startswith("local://"):
+            # Simulation Mode
+            redis_client = Redis.from_url(settings.REDIS_URL)
+            channel = f"job_logs:{job_id}"
+            
+            states = ["PENDING", "RUNNING", "RUNNING", "SUCCEEDED"]
+            for state in states:
+                msg = json.dumps({
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "state": state,
+                    "message": f"SIMULATION: Job state is {state}"
+                })
+                redis_client.publish(channel, msg)
+                time.sleep(5)
+            
+            job.status = "completed"
+            job.completed_at = datetime.utcnow()
+            db.commit()
+            redis_client.publish(channel, json.dumps({"type": "done", "status": "completed"}))
+            return
+
         vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
         
         sft_tuning_job = sft.train(
