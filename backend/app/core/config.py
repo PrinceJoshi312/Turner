@@ -32,8 +32,8 @@ class Settings(BaseSettings):
 
     # Limits
     MAX_UPLOAD_SIZE_MB: int = 100
-    # Use str to prevent pydantic-settings from auto-decoding
-    ALLOWED_MODELS: str = "gemini-1.0-pro-002"
+    # Use Any to prevent pydantic-settings from auto-decoding complex types
+    ALLOWED_MODELS: Any = "gemini-1.0-pro-002"
 
     @field_validator("ALLOWED_MODELS", mode="before")
     @classmethod
