@@ -14,4 +14,5 @@ class Dataset(Base):
     file_type = Column(Enum("csv", "jsonl", name="file_type_enum"), nullable=False)
     row_count = Column(Integer, nullable=True)
     status = Column(Enum("uploaded", "validated", "failed", name="dataset_status_enum"), default="uploaded")
+    error_message = Column(String(500), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

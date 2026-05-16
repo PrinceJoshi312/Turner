@@ -44,7 +44,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
           } else if (statusRes.data.status === 'failed') {
             clearInterval(interval);
             setStatus('failed');
-            setError('Validation failed. Check your data format.');
+            setError(statusRes.data.error_message || 'Validation failed. Check your data format.');
           }
         } catch (err) {
           clearInterval(interval);

@@ -13,4 +13,4 @@ class DatasetStatusResponse(BaseModel):
     dataset_id: UUID
     status: str
     row_count: Optional[int] = None
-    error: Optional[str] = None
+    error_message: Optional[str] = None

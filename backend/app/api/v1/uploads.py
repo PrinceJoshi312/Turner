@@ -85,4 +85,5 @@ async def get_dataset_status(
         dataset_id=dataset.id,
         status=dataset.status,
         row_count=dataset.row_count,
+        error_message=dataset.error_message,
     )
