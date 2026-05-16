@@ -54,10 +54,11 @@ def validate_dataset(dataset_id: str):
             # Check for required columns
             if "input_text" not in df.columns or "output_text" not in df.columns:
                 dataset.status = "failed"
-                # error logged
+                print(f"VALIDATION FAILED: Required columns missing. Found columns: {list(df.columns)}")
             else:
                 dataset.status = "validated"
                 dataset.row_count = len(df)
+                print(f"VALIDATION SUCCESS: {len(df)} rows validated.")
             
             db.commit()
         except Exception as e:
