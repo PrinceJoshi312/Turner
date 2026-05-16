@@ -4,6 +4,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from app.db.base import Base
 
 
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+
 class Dataset(Base):
     __tablename__ = "datasets"
 
@@ -13,6 +15,7 @@ class Dataset(Base):
     gcs_uri = Column(String(500), nullable=False)
     file_type = Column(Enum("csv", "jsonl", name="file_type_enum"), nullable=False)
     row_count = Column(Integer, nullable=True)
+    column_mapping = Column(JSONB, nullable=True) # { "input_text": "user_col", "output_text": "ai_col" }
     status = Column(Enum("uploaded", "validated", "failed", name="dataset_status_enum"), default="uploaded")
     error_message = Column(String(500), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

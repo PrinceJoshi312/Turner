@@ -51,6 +51,12 @@ def validate_dataset(dataset_id: str):
             else:
                 df = pd.read_json(io.BytesIO(content), lines=True)
             
+            # Apply mapping if exists
+            if dataset.column_mapping:
+                # Rename columns based on mapping: { "input_text": "user_col" } -> rename "user_col" to "input_text"
+                reverse_mapping = {v: k for k, v in dataset.column_mapping.items()}
+                df = df.rename(columns=reverse_mapping)
+
             # Check for required columns
             if "input_text" not in df.columns or "output_text" not in df.columns:
                 dataset.status = "failed"

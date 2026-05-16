@@ -28,3 +28,8 @@ class Token(BaseModel):
 class TokenPayload(BaseModel):
     sub: Optional[str] = None
     type: Optional[str] = None
+
+class UserMe(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    is_active: bool

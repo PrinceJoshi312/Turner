@@ -1,5 +1,19 @@
 version: '3.8'
 
+x-app-base: &app-base
+  build: 
+    context: ../backend
+    dockerfile: Dockerfile
+  volumes:
+    - ../backend:/app
+  env_file:
+    - ../backend/.env.example # Use example as template for dev
+  environment:
+    DATABASE_URL: postgresql+asyncpg://user:pass@postgres:5432/autofinetune
+    REDIS_URL: redis://redis:6379/0
+    CELERY_BROKER_URL: redis://redis:6379/0
+    CELERY_RESULT_BACKEND: redis://redis:6379/1
+
 services:
   postgres:
     image: postgres:15
@@ -18,41 +32,21 @@ services:
       - "6379:6379"
 
   backend:
-    build: 
-      context: ../backend
-      dockerfile: Dockerfile
+    <<: *app-base
     ports:
       - "8000:8000"
     depends_on:
       - postgres
       - redis
-    volumes:
-      - ../backend:/app
-    env_file:
-      - ../backend/.env.example # Use example as template for dev
-    environment:
-      DATABASE_URL: postgresql+asyncpg://user:pass@postgres:5432/autofinetune
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    # Run migrations before starting the server
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
   celery_worker:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
-    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=4
+    <<: *app-base
+    command: sh -c "alembic upgrade head && celery -A app.tasks.celery_app worker --loglevel=info --concurrency=4"
     depends_on:
       - postgres
       - redis
-    volumes:
-      - ../backend:/app
-    env_file:
-      - ../backend/.env.example
-    environment:
-      DATABASE_URL: postgresql+asyncpg://user:pass@postgres:5432/autofinetune
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
 
   frontend:
     build:
@@ -62,7 +56,7 @@ services:
       - "5173:5173"
     volumes:
       - ../frontend:/app
-      - /app/node_modules # Don't overwrite container node_modules with host (if empty)
+      - /app/node_modules # Don't overwrite container node_modules with host
     environment:
       VITE_API_BASE_URL: http://localhost:8000/api/v1
       VITE_WS_BASE_URL: ws://localhost:8000/api/v1
